@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Hindsight - Self-Hosted Persistent Memory Engine
+  # ============================================================================
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:latest
+    container_name: hindsight_memory
+    restart: unless-stopped
+    ports:
+      - "8888:8888"  # Hindsight REST API
+      - "9999:9999"  # Hindsight Web Dashboard / UI
+    environment:
+      # If using Ollama running on host machine:
+      - HINDSIGHT_API_LLM_PROVIDER=openai
+      - HINDSIGHT_API_LLM_BASE_URL=http://host.docker.internal:11434/v1
+      - HINDSIGHT_API_LLM_API_KEY=${HINDSIGHT_API_LLM_API_KEY:-ollama}
+      - HINDSIGHT_API_LLM_MODEL=llama3.2
+      # Enable local embedded storage (.pg0 embedded postgres)
+    volumes:
+      - hindsight_data:/home/hindsight/.pg0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ============================================================================
+  # Optional: Ollama Container (if not running Ollama natively on host)
+  # ============================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_llm
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Uncomment the deploy section below if you have an NVIDIA GPU on Linux/WSL2
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  hindsight_data:
+    name: hindsight_memory_data
+  ollama_data:
+    name: ollama_llm_data
